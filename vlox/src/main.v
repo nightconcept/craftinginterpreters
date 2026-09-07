@@ -2,78 +2,81 @@ module main
 
 import os
 
+//> lox-class
+@[heap]
+struct Lox {
+mut:
+	//> had-error
+	had_error bool
+	//< had-error
+}
+
 fn main() {
 	mut lox := Lox{}
-	if os.args.len > 1 {
+	if os.args.len > 2 {
 		println('Usage: vlox [script]')
-		exit(int(EX.usage))
-		return
-	} else if os.args.len == 1{
+		exit(64)
+	} else if os.args.len == 2 {
 		lox.run_file(os.args[1])
 	} else {
 		lox.run_prompt()
 	}
-
 }
 
-struct Lox {
-	mut:
-		had_error bool
-}
+//< lox-class
 
-fn (mut l Lox) run_file(path string) bool {
-	if !os.exists(path) {
-		println('File not found: $path')
-		return false
-	}
+//> run-file
+fn (mut l Lox) run_file(path string) {
+	content := os.read_file(path) or { panic(err) }
+	l.run(content)
+	//> exit-code
 
-	content := os.read_file(path) or {
-		eprintln('Failed to read file: $path')
-		return false
-	}
-
-	run(content)
+	// Indicate an error in the exit code.
 	if l.had_error {
+		exit(65)
 	}
-	return true
+	//< exit-code
 }
 
-fn (mut l Lox) run(content string) {
-	mut had_error := false
-  mut scanner := Scanner{
-		source: content
-		on_error: fn [mut had_error] (line int, message string) {
-			had_error = true
-			eprintln('[line ${line}] Error: ${message}')
-		}
+//< run-file
+
+//> prompt
+fn (mut l Lox) run_prompt() {
+	for {
+		line := os.input_opt('> ') or { break }
+		l.run(line)
+		//> reset-had-error
+		l.had_error = false
+		//< reset-had-error
+	}
+}
+
+//< prompt
+
+//> run
+fn (mut l Lox) run(source string) {
+	mut scanner := Scanner{
+		source: source
+		lox:    &l
 	}
 	tokens := scanner.scan_tokens()
-	if had_error {
-		return
-	}
+
+	// For now, just print the tokens.
 	for token in tokens {
 		println(token)
 	}
 }
 
-fn (mut l Lox) run_prompt() {
-	println('Lox REPL (Ctrl+C to exit)')
-	for {
-		print('> ')
-		os.flush()
-		line := os.get_line()
-		if line == '' {
-			break
-		}
-		run(line)
-		l.had_error = false
-	}
-}
+//< run
 
-pub fn (mut l Lox) error(line int, message string) {
-	l.report(line, '' , message)
+//> lox-error
+fn (mut l Lox) error(line int, message string) {
+	l.report(line, '', message)
 }
 
 fn (mut l Lox) report(line int, where string, message string) {
 	eprintln('[line ${line}] Error${where}: ${message}')
+	l.had_error = true
 }
+
+//< lox-error

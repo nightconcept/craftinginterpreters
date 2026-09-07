@@ -1,6 +1,8 @@
 module main
 
+//> token-type
 enum TokenType {
+	// Single-character tokens.
 	left_paren
 	right_paren
 	left_brace
@@ -10,10 +12,12 @@ enum TokenType {
 	minus
 	plus
 	semicolon
+	slash
 	star
 
 	// One or two character tokens.
 	bang
+	bang_equal
 	equal
 	equal_equal
 	greater
@@ -46,9 +50,4 @@ enum TokenType {
 
 	eof
 }
-
-enum EX {
-	usage = 64
-	dataerr = 65
-	ioerr = 74
-}
+//< token-type

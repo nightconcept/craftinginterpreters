@@ -272,6 +272,17 @@ We take all of this data and wrap it in a class.
 Now we have an object with enough structure to be useful for all of the later
 phases of the interpreter.
 
+<div class="translators-note">
+<span class="translators-note-label">Translator's note</span>
+
+Java's `Object` holds any value, so the book stores a token literal in one.
+V has no universal base type. `vlox` uses a sum type, `Literal = f64 |
+string`, wrapped in `?Literal` so a token with no literal value can hold
+`none` where Java would store `null`. The set of literal kinds is fixed at
+compile time, which is stricter but not weaker here.
+
+</div>
+
 ## Regular Languages and Expressions
 
 Now that we know what we're trying to produce, let's, well, produce it. The core
