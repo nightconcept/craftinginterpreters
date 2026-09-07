@@ -38,6 +38,14 @@ overcounts by one hit per built page (40, currently).
 
 1,133 means nothing is done. 0 means the translation is complete.
 
+**Current: 1,100.** Chapter 4 accounts for all 33 resolved tags.
+
+Reconcile that total against the per-chapter tag counts in the tables below
+every time it moves. A chapter whose placeholder count is lower than its tag
+count, and which nobody has translated, is rendering another chapter's code.
+That check is what caught the `^code match` and `^code lox-class` leaks; no
+per-chapter check found them.
+
 ---
 
 ## Phase 0 — Scaffolding
@@ -56,29 +64,105 @@ overcounts by one hit per built page (40, currently).
 
 ## Phase 1 — Tooling
 
+**Status: done, with one gap.**
+
 Replace the parts of the Dart toolchain that the translation needs.
 
-| Task | Output |
-| --- | --- |
-| Chapter splitting | `tools/split-chapters.mjs` writes `gen/NN-slug/` |
-| Chapter builds | `tools/build-chapters.mjs` compiles every snapshot |
-| Test runner | `tools/test.mjs` runs `test/` against a binary |
-| Pages CI | `.github/workflows/pages.yml` |
+| Task | Output | Status |
+| --- | --- | --- |
+| Chapter splitting | `tools/split-chapters.mjs` writes `gen/NN-slug/` | done |
+| Chapter builds | `tools/build-chapters.mjs` compiles every snapshot | done |
+| Test runner | `tools/test.mjs` runs `test/` against a binary | done |
+| Per-chapter test suites | none yet | **missing** |
+| Pages CI | `.github/workflows/pages.yml` | done |
+
+`just split` writes 10 snapshots and `just build-chapters` compiles 10 of
+10 cleanly.
+
+**The gap: `just test-chapters` runs the whole corpus against every
+snapshot.** Chapter 4's snapshot reports 6 passed and 248 failed, because
+248 of those tests need a parser that chapter 4 does not have. Nystrom's
+Dart tool scopes a suite to each chapter, so a chapter is graded only on
+what it is supposed to do by then. Until that lands, `test-chapters` cannot
+go green and ground rule 2 cannot be met as written.
 
 Read `tool/lib/src/` for the exact semantics before porting each one. Do not
 extend the Dart code.
 
 ## Phase 2 — Close the snippet gap
 
-The current plugin extracts a marked range. Nystrom's tool also models each
-chapter as a running diff, so a tag can show only the lines a chapter *adds*
-to a file. The chapter-scoped markers (`//> Scanning scan-token`) drive that.
+**Status: done and verified.**
 
-Until this lands, some tags render a correct-looking but wrong range. That
-is the highest-risk defect in the pipeline, because it fails quietly.
+`web/plugins/remark-code-tag.mjs` now implements Nystrom's line-ownership
+model. A `//>` pushes a frame, a `//<` pops it, and every non-marker line
+belongs to the innermost open frame, so a tag owns a possibly-discontiguous
+set of lines instead of a flat span. A tag left open at end of file runs to
+EOF rather than being dropped.
 
-Do this before Part II translation gets far. Verify against `java/`, which
-still holds the marked-up original.
+Three defects it closed, all of them silent:
+
+1. **Nested ranges leaked into the enclosing tag.** In Scanning alone,
+   `scanner-class` swallowed `scan-state`, `lox-class` swallowed
+   `had-error`, `run-file` swallowed `exit-code`, `prompt` swallowed
+   `reset-had-error`, and `scan-token` swallowed `two-char-tokens`.
+2. **A plain marker acted as a global fallback.** Tag names are unique only
+   within a chapter, so chapter 4's `Scanner.match_char` rendered as Parsing
+   Expressions' `^code match`, and chapter 4's `Lox` struct rendered as the
+   Classes chapter's `^code lox-class` — confident, plausible, wrong code in
+   chapters nobody had translated. A plain marker now belongs to exactly one
+   chapter: the first, in reading order and within the same implementation,
+   whose Markdown declares the directive.
+3. **Context options lost lines to markers.** `(N before, M after)` counted
+   physical lines without skipping marker comments, so nine of chapter 4's
+   twelve context tags rendered with some or all context missing.
+
+Verified against `java/`, which still holds the marked-up original:
+`interpreter-class` owns 20 of `Interpreter.java`'s 537 lines, and
+`declaration` in `Parser.java` owns the discontiguous lines 60, 61, 68-75.
+
+Not modelled, and not needed here: Nystrom's added/removed line tracking for
+the "replace N lines" location prose, and his `/* Chapter tag < Chapter tag */`
+block-comment form for marking deletions.
+
+## Phase 2.5 — Research and plan Part II from chapter 5
+
+**Status: not started. This is the next task.**
+
+Chapter 4 was a mechanical translation with no design content. Chapter 5 is
+not. It sets the AST representation for the whole of Part II, and the plan
+below assumes a sum type and `match` without having tested that assumption
+against the chapters that consume it.
+
+Do this as its own task, before writing chapter 5's code. Its output is a
+written design decision in `docs/repo/`, not an interpreter.
+
+Questions it has to answer:
+
+1. **The AST shape.** A V sum type with `match` is the obvious candidate.
+   Confirm it against the four passes that consume the AST — the parser
+   (6), the interpreter (7), the resolver (11), and `AstPrinter` (5) — not
+   against chapter 5 alone. The risk table's mitigation is to prototype
+   chapters 5 and 7 together before committing; honour it.
+2. **Recursive sum types in V.** `Expr` contains `Expr`. Establish whether
+   that needs a reference or a heap allocation, and what that does to
+   `match` ergonomics and to the rendered snippets.
+3. **`GenerateAst`.** Nystrom generates the AST classes with a Java program.
+   V needs no generator for a sum type, which deletes a tool the book spends
+   a section on. Decide what `vlox/` contains in its place, and draft the
+   translator's note. This is the single largest structural divergence in
+   Part II, and Appendix II (23 tags) depends on the same decision.
+4. **Control flow as values.** Chapters 6, 7, and 10 use Java exceptions for
+   `ParseError`, runtime errors, and `return`. V has `!` results and no
+   exceptions. Decide the pattern once, here, rather than three times.
+5. **`Environment` and its parent link.** Chapter 8's `Environment` holds a
+   reference to its enclosing scope, and chapter 10's closures keep those
+   alive. Establish the ownership model before chapter 8, not during it.
+6. **Per-chapter test suites.** Phase 1's gap blocks ground rule 2. Decide
+   whether that lands before chapter 5 or alongside it.
+
+Deliverable: a spoke in `docs/repo/` recording each decision and its reason,
+linked from the spoke index in `CLAUDE.md`. Chapters 5 to 13 then follow it
+instead of relitigating it.
 
 ## Phase 3 — Part II, the tree-walk interpreter
 
@@ -88,8 +172,8 @@ markers, translator's notes, and a green `just test-chapters`.
 
 | # | Chapter | Tags | The hard part in V |
 | ---: | --- | ---: | --- |
-| 4 | Scanning | 33 | Seeded, but **the seed does not compile**. `../lox/vlox` calls `run()` as a free function at `main.v:35` and `main.v:68` when it is a method, and `Scanner.on_error` is an uninitialized `fn` field. Fix these first. |
-| 5 | Representing Code | 18 | **The Visitor pattern.** No Java class hierarchy. Use a sum type and `match`. This decision shapes every later chapter. |
+| 4 | Scanning | 33 | **Done.** 33/33 tags marked, 6/6 `test/scanning` tests pass. The seed's `run()` free-function calls, uninitialized `on_error` field, and inverted argument test are fixed. Java's static `Lox.error()` became a back-reference field on `Scanner`, kept outside every marker so it stays out of the book. Token printing matches Java exactly — upper-case type names, `null` for an absent literal — so the shared corpus applies unchanged. One translator's note, on `Object` becoming `Literal = f64 \| string`. |
+| 5 | Representing Code | 18 | **The Visitor pattern.** No Java class hierarchy. Use a sum type and `match`. This decision shapes every later chapter. Blocked on Phase 2.5. |
 | 6 | Parsing Expressions | 20 | `ParseError` as control flow becomes a V `!` result. |
 | 7 | Evaluating Expressions | 31 | `Object` literals become a sum type. Runtime errors become results. |
 | 8 | Statements and State | 40 | `Environment` holds a reference to its parent. Watch V's ownership rules. |
@@ -160,8 +244,10 @@ Do not do step 1 early to tidy up. The book is unverifiable without them.
 
 | Risk | Effect | Mitigation |
 | --- | --- | --- |
-| The snippet diff model is unimplemented | Wrong code renders silently | Phase 2, before Part II gets far |
-| The Visitor decision in chapter 5 | Rewrites chapters 6 to 13 | Prototype chapter 5 and 7 together before committing |
+| ~~The snippet diff model is unimplemented~~ | ~~Wrong code renders silently~~ | **Closed.** Phase 2 landed and is verified against `java/` |
+| A tag resolves to another chapter's code | Confident, plausible, wrong code in an untranslated chapter | Reconcile the total placeholder count against the per-chapter tag tables on every change |
+| `test-chapters` cannot go green | Ground rule 2 is unenforceable | Port Nystrom's per-chapter test suites; see the Phase 1 gap |
+| The Visitor decision in chapter 5 | Rewrites chapters 6 to 13 | Phase 2.5 decides it in writing first; prototype chapters 5 and 7 together before committing |
 | Shiki has no V grammar | Highlighting is approximate | Aliased to a near grammar; replace when one exists |
 | V 0.5.2 is pinned | The language moves fast | Do not bump mid-translation |
 | Chapters 24 to 26 | The hardest block, late in the book | Schedule them as one unit |
