@@ -1,0 +1,79 @@
+---
+import "../styles/book.scss";
+import { adjacent, chapterNumber, titleFor } from "../data/toc";
+
+interface Props { slug: string }
+const { slug } = Astro.props;
+const { prev, next } = adjacent(slug);
+const number = chapterNumber(slug);
+const title = titleFor(slug);
+const base = import.meta.env.BASE_URL;
+---
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} &middot; Crafting Interpreters in V</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:wght@300;400;600&family=Source+Code+Pro:wght@400;600&display=swap"
+    />
+  </head>
+  <body>
+    <div class="page">
+      <nav class="site-nav">
+        <a href={base}>Crafting Interpreters in V</a>
+      </nav>
+
+      <article class="prose">
+        {number && <div class="chapter-number">Chapter {number}</div>}
+        <h1>{title}</h1>
+        <slot />
+      </article>
+
+      <nav class="chapter-nav">
+        {prev ? <a href={`${base}/${prev.slug}/`}>&larr; {prev.title}</a> : <span />}
+        {next ? <a href={`${base}/${next.slug}/`}>{next.title} &rarr;</a> : <span />}
+      </nav>
+    </div>
+
+    <script>
+      // Line each aside up with the anchor that names it. The prose column is
+      // the reference frame, so both offsets are measured against it.
+      function placeAsides() {
+        const page = document.querySelector(".page");
+        const prose = document.querySelector(".prose");
+        if (!page || !prose) return;
+
+        const wide = window.matchMedia("(min-width: 1025px)").matches;
+        const asides = document.querySelectorAll<HTMLElement>(".aside");
+        if (!wide) {
+          asides.forEach((a) => (a.style.top = ""));
+          return;
+        }
+
+        const top = page.getBoundingClientRect().top;
+        let floor = 0;
+        asides.forEach((aside) => {
+          const name = aside.dataset.aside;
+          const anchor = document.querySelector(`[data-anchor="${name}"]`);
+          if (!anchor) return;
+
+          const want = anchor.getBoundingClientRect().top - top;
+          // Never let an aside overlap the one above it.
+          const at = Math.max(want, floor);
+          aside.style.position = "absolute";
+          aside.style.top = `${at}px`;
+          floor = at + aside.offsetHeight + 24;
+        });
+        page.style.position = "relative";
+      }
+
+      placeAsides();
+      window.addEventListener("resize", placeAsides);
+      document.fonts?.ready.then(placeAsides);
+    </script>
+  </body>
+</html>

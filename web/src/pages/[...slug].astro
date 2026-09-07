@@ -1,0 +1,18 @@
+---
+import { getCollection, render } from "astro:content";
+import Chapter from "../layouts/Chapter.astro";
+
+export async function getStaticPaths() {
+  const pages = await getCollection("book");
+  return pages.map((page) => ({
+    params: { slug: page.id === "index" ? undefined : page.id },
+    props: { page },
+  }));
+}
+
+const { page } = Astro.props;
+const { Content } = await render(page);
+---
+<Chapter slug={page.id}>
+  <Content />
+</Chapter>

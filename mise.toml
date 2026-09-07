@@ -1,0 +1,12 @@
+# Toolchain for the V translation of Crafting Interpreters.
+# Run `mise trust && mise install` after cloning.
+
+[tools]
+"github:vlang/v" = "0.5.2"
+node = "24"
+pnpm = "12"
+just = "latest"
+
+[env]
+# Root of the repository, used by the just recipes and the snippet plugin.
+BOOK_ROOT = "{{config_root}}"

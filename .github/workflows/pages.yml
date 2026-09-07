@@ -1,0 +1,64 @@
+# Publishes web/dist (the Astro build of the book site) to GitHub Pages.
+# mise pins the exact V/node/pnpm versions this repo needs, and jdx/mise-action
+# installs from that same file, so CI builds with the identical toolchain a
+# contributor gets locally after `mise install` -- no separate version list
+# to keep in sync here.
+name: Deploy book site to GitHub Pages
+
+on:
+  push:
+    branches: [master]
+  # Lets a maintainer re-publish without pushing a commit.
+  workflow_dispatch:
+
+# Only one deploy at a time; a newer push should win over one still in flight
+# rather than have them race to publish.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install mise-pinned toolchain (V, node, pnpm, just)
+        uses: jdx/mise-action@v2
+        with:
+          # pnpm ships through corepack, not as its own mise-installed tool.
+          install: true
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install web/ dependencies
+        run: corepack pnpm --dir web install --frozen-lockfile
+
+      - name: Build the site
+        run: corepack pnpm --dir web run build
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload build artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

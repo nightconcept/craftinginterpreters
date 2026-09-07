@@ -16,3 +16,8 @@ xcuserdata/
 # Dart stuff.
 /tool/.dart_tool/
 /tool/.packages
+
+# Astro site build.
+/web/dist/
+/web/.astro/
+/web/node_modules/
