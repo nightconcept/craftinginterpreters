@@ -60,10 +60,16 @@ are the visible to-do list. Count them to measure progress:
 
 ```sh
 just book
-grep -ro 'snippet-missing' web/dist | wc -l
+grep -ro 'div class="snippet-missing"' web/dist | wc -l
 ```
 
-The starting count is 1,133, one per `^code` directive in the book.
+Match the `div`, not just the class name: every page's inlined CSS also
+defines a `.snippet-missing{...}` rule, so a bare `grep -ro 'snippet-missing'`
+overcounts by one hit per built page (40).
+
+The book has 1,133 `^code` directives in total (`grep -o '\^code
+[-a-z0-9]*' book/*.md | wc -l`). The placeholder count above starts at 1,133
+and drops toward 0 as chapters are translated and marked.
 
 ## Tag names are not unique across implementations
 
@@ -78,30 +84,80 @@ chapter must declare `impl` or its tags never resolve.
 ## Trap: the content cache hides plugin changes
 
 Astro's glob loader caches rendered output in
-`web/node_modules/.astro/data-store.json`. Note the path: it is under
-`node_modules`, not `web/.astro`.
+`web/node_modules/.astro/data-store.json`. Adding a marker to a V source
+does not invalidate that cache, because the Markdown did not change: the
+build reuses a stale placeholder and the plugin never runs.
 
-Adding a marker to a V source does not invalidate that cache, because the
-Markdown did not change. The build then reuses a stale placeholder and the
-plugin never runs. If a snippet you just marked still renders as missing:
+Clearing only that one path is not reliably enough — Vite's own dependency
+cache (`web/node_modules/.vite`), Astro's local cache (`web/.astro`), and a
+stale `web/dist` can each independently keep the old output alive. Clear all
+four before rebuilding if a snippet you just marked still renders as
+missing:
 
 ```sh
-rm -rf web/node_modules/.astro && just book
+rm -rf web/.astro web/node_modules/.astro web/node_modules/.vite web/dist && just book
 ```
 
-## Known gap: Nystrom models chapters as a diff
+## The diff model: line ownership, not spans
 
-His Dart tool does more than range extraction. It treats each chapter as a
-running diff over the source files, so a `^code` tag can show only the lines
-that a chapter *adds* to a file that already exists. The chapter-scoped
-marker forms exist to drive that.
+Markers nest: `scan-token` wraps `two-char-tokens`, `scanner-class` wraps
+`scan-state`, `lox-class` wraps `had-error`. Nystrom's tool assigns every
+source line to exactly the *innermost* tag open at that point, via a
+push/pop stack (`tool/lib/src/source_file_parser.dart`). A tag's own
+rendered snippet is only the lines it owns directly — never the lines a
+nested tag carved out of it — so `^code scan-token` shows the switch without
+the two-char cases, and a later `^code two-char-tokens` shows just those
+cases.
 
-The current plugin implements range extraction. It does not implement the
-diff model. Most tags do not need it, but some do, and those will render the
-wrong range rather than fail loudly.
+`remark-code-tag.mjs` walks each file once with the same stack. A plain
+source line is attributed to whatever tag sits on top of the stack; `//>`
+pushes, `//<` pops. Because ownership is a set of line indices rather than a
+start/end pair, it can be discontiguous — a tag opened before a nested
+range and continued after it renders both pieces with the gap silently
+closed, exactly like Nystrom's `added` list. A `//>` with no matching `//<`
+simply keeps owning lines through end of file, since nothing ever pops it.
 
-This is Phase 2 work in [the plan](../plan.md). Until then, check a rendered
-snippet against the chapter text when you translate.
+Extracting a contiguous span instead (stripping only marker lines) was the
+original bug: every nested marker's lines leaked into the enclosing tag's
+snippet, so `^code scanner-class` rendered `scan-state`'s fields too, and
+`^code lox-class` rendered `had-error`'s field before its own `^code`
+introduced it. Correct-looking, wrong content, no build failure.
+
+## Reused tag names: a plain marker belongs to one chapter
+
+A plain, unscoped `//> name` is not a global fallback every chapter can
+reach. Tag names are only unique *within* a chapter — Parsing Expressions'
+`match` (the parser helper) and Scanning's `match` (`Scanner.match_char`)
+are two unrelated tags that happen to share a name. In Nystrom's model, a
+plain marker belongs to whichever chapter the parser's state was in when it
+saw that marker; `remark-code-tag.mjs` gets the same answer by reading
+`book/*.md` (read-only) rather than replaying parser state: a name's owner
+is the *first* chapter in `toc.ts` reading order, within that name's
+implementation, whose own Markdown contains `^code name`.
+
+A tag name can also be reused in a *later chapter* via the chapter-scoped
+marker form, to show only what that chapter changes rather than a repeat of
+the whole thing. `remark-code-tag.mjs` resolves `^code name` in chapter `X`:
+
+1. If `name` has a chapter-scoped version for exactly `X`, use it.
+2. Otherwise, among the chapter-scoped versions of `name` that come at or
+   before `X`, use the latest one — the state of the file as of `X`.
+3. Otherwise, use the plain, unscoped `//> name` tag only if `X` is that
+   name's one owning chapter.
+4. Otherwise, render the placeholder — `X` hasn't been given this code yet.
+
+Skipping step 4 was a real bug: a flat name -> tag fallback let an
+untranslated chapter's `^code` resolve to a same-named tag owned by an
+earlier, unrelated chapter (Classes' `lox-class` briefly rendered Scanning's
+`Lox` struct), a confident, plausible, wrong answer instead of the honest
+placeholder. Chapter-scoping the marker fixes the same-name collision
+without collapsing every chapter's `^code` onto one tag.
+
+What this does *not* model: Nystrom's tool also tracks individual added and
+removed lines for the "replace N lines" location text, and a
+`/* Chapter tag < Chapter tag */` block form for marking deleted lines.
+Neither is part of the marker grammar above, and V sources don't need them:
+a chapter-scoped `//>`/`//<` pair is enough to show what a chapter changed.
 
 ## Adding markers
 

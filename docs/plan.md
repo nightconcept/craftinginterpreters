@@ -29,8 +29,12 @@ placeholder. Count them:
 
 ```sh
 just book
-grep -ro 'snippet-missing' web/dist | wc -l
+grep -ro 'div class="snippet-missing"' web/dist | wc -l
 ```
+
+Match the `div`, not just the class name: every page's inlined CSS also
+defines a `.snippet-missing{...}` rule, so a bare `grep -ro 'snippet-missing'`
+overcounts by one hit per built page (40, currently).
 
 1,133 means nothing is done. 0 means the translation is complete.
 
