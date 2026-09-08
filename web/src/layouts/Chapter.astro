@@ -40,12 +40,12 @@ const base = import.meta.env.BASE_URL;
     </div>
 
     <script>
-      // Line each aside up with the anchor that names it. The prose column is
-      // the reference frame, so both offsets are measured against it.
+      // Line each aside up with the anchor that names it. Asides live inside
+      // the prose article and CSS makes them absolute on wide screens, so the
+      // prose box is the reference frame for every offset here.
       function placeAsides() {
-        const page = document.querySelector(".page");
         const prose = document.querySelector(".prose");
-        if (!page || !prose) return;
+        if (!prose) return;
 
         const wide = window.matchMedia("(min-width: 1025px)").matches;
         const asides = document.querySelectorAll<HTMLElement>(".aside");
@@ -54,21 +54,23 @@ const base = import.meta.env.BASE_URL;
           return;
         }
 
-        const top = page.getBoundingClientRect().top;
+        const top = prose.getBoundingClientRect().top;
+        // Natural y of each aside, read before any `top` is applied, so an
+        // aside with no matching anchor still lands near where it was written.
+        const natural = new Map<HTMLElement, number>();
+        asides.forEach((a) => natural.set(a, a.getBoundingClientRect().top - top));
+
         let floor = 0;
         asides.forEach((aside) => {
-          const name = aside.dataset.aside;
-          const anchor = document.querySelector(`[data-anchor="${name}"]`);
-          if (!anchor) return;
-
-          const want = anchor.getBoundingClientRect().top - top;
+          const anchor = document.querySelector(`[data-anchor="${aside.dataset.aside}"]`);
+          const want = anchor
+            ? anchor.getBoundingClientRect().top - top
+            : natural.get(aside)!;
           // Never let an aside overlap the one above it.
           const at = Math.max(want, floor);
-          aside.style.position = "absolute";
           aside.style.top = `${at}px`;
           floor = at + aside.offsetHeight + 24;
         });
-        page.style.position = "relative";
       }
 
       placeAsides();

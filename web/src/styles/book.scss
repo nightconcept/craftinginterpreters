@@ -78,6 +78,17 @@ blockquote {
   cite { display: block; font-style: normal; font-size: 16px; }
 }
 
+// --- figures ------------------------------------------------------------
+
+// Nystrom's illustrations are 2x assets. Cap them at the prose width and
+// let the intrinsic ratio scale the height.
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 32px 0;
+}
+
 // --- code -----------------------------------------------------------------
 
 code {
@@ -120,10 +131,10 @@ pre {
 
 // --- asides ---------------------------------------------------------------
 
-// Asides sit in the right column. The runtime script in Chapter.astro gives
-// each one a `top` offset so it lines up with its named anchor in the prose.
+// Asides render inside the prose article, so the prose box is their
+// positioning context. On wide screens the runtime script in Chapter.astro
+// gives each one a `top` offset so it lines up with its named anchor.
 .aside {
-  grid-column: 2;
   font: 400 15px/24px $nav;
   color: $gray-2;
   margin: 0 0 24px;
@@ -133,6 +144,17 @@ pre {
 }
 
 .aside-anchor { border-bottom: dotted 1px $gray-4; }
+
+@media (min-width: 1025px) {
+  .prose { position: relative; }
+
+  .aside {
+    position: absolute;
+    left: calc(100% + #{$col});
+    width: $aside-width;
+    margin: 0;
+  }
+}
 
 // --- translator's notes ---------------------------------------------------
 
