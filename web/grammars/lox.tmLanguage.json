@@ -1,0 +1,76 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "lox",
+  "scopeName": "source.lox",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#string" },
+    { "include": "#number" },
+    { "include": "#declaration" },
+    { "include": "#keyword" },
+    { "include": "#constant" },
+    { "include": "#call" },
+    { "include": "#operator" }
+  ],
+  "repository": {
+    "comment": {
+      "name": "comment.line.double-slash.lox",
+      "match": "//.*$"
+    },
+    "string": {
+      "name": "string.quoted.double.lox",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        { "name": "constant.character.escape.lox", "match": "\\\\." }
+      ]
+    },
+    "number": {
+      "name": "constant.numeric.lox",
+      "match": "\\b[0-9]+(\\.[0-9]+)?\\b"
+    },
+    "declaration": {
+      "patterns": [
+        {
+          "match": "\\b(class)\\s+([A-Za-z_][A-Za-z0-9_]*)(?:\\s*(<)\\s*([A-Za-z_][A-Za-z0-9_]*))?",
+          "captures": {
+            "1": { "name": "storage.type.class.lox" },
+            "2": { "name": "entity.name.type.class.lox" },
+            "3": { "name": "keyword.operator.inheritance.lox" },
+            "4": { "name": "entity.other.inherited-class.lox" }
+          }
+        },
+        {
+          "match": "\\b(fun)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "storage.type.function.lox" },
+            "2": { "name": "entity.name.function.lox" }
+          }
+        },
+        {
+          "match": "\\b(var)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "storage.type.var.lox" },
+            "2": { "name": "variable.other.lox" }
+          }
+        }
+      ]
+    },
+    "keyword": {
+      "name": "keyword.control.lox",
+      "match": "\\b(and|class|else|for|fun|if|or|print|return|super|this|var|while)\\b"
+    },
+    "constant": {
+      "name": "constant.language.lox",
+      "match": "\\b(true|false|nil)\\b"
+    },
+    "call": {
+      "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\()",
+      "name": "entity.name.function.call.lox"
+    },
+    "operator": {
+      "name": "keyword.operator.lox",
+      "match": "[-+*/=<>!]=?|\\band\\b|\\bor\\b"
+    }
+  }
+}

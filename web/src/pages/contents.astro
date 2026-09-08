@@ -1,0 +1,29 @@
+---
+import Chapter from "../layouts/Chapter.astro";
+import { parts, chapterNumber } from "../data/toc";
+
+const base = import.meta.env.BASE_URL;
+const href = (s: string) => `${base}${s === "index" ? "" : `${s}/`}`.replace(/\/{2,}/g, "/");
+
+const roman = ["I", "II", "III", "IV", "V"];
+let numbered = 0;
+const label = (title: string) =>
+  title === "Backmatter" ? "" : roman[numbered++] ?? "";
+---
+<Chapter slug="contents">
+  <div class="toc">
+    {parts.filter((p) => p.title !== "").map((part) => (
+      <section>
+        <h2><span class="num">{label(part.title)}</span>{part.title}</h2>
+        <ul>
+          {part.chapters.map((ch) => (
+            <li>
+              <span class="num">{chapterNumber(ch.slug)}</span>
+              <a href={href(ch.slug)}>{ch.title}</a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+  </div>
+</Chapter>

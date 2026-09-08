@@ -4,15 +4,18 @@ import Chapter from "../layouts/Chapter.astro";
 
 export async function getStaticPaths() {
   const pages = await getCollection("book");
-  return pages.map((page) => ({
-    params: { slug: page.id === "index" ? undefined : page.id },
-    props: { page },
-  }));
+  return pages
+    // `/contents/` is generated from `toc.ts` by `pages/contents.astro`.
+    .filter((page) => page.id !== "contents")
+    .map((page) => ({
+      params: { slug: page.id === "index" ? undefined : page.id },
+      props: { page },
+    }));
 }
 
 const { page } = Astro.props;
-const { Content } = await render(page);
+const { Content, headings } = await render(page);
 ---
-<Chapter slug={page.id}>
+<Chapter slug={page.id} headings={headings}>
   <Content />
 </Chapter>
