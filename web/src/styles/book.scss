@@ -73,6 +73,13 @@ a:hover { border-bottom-color: $light; }
   position: relative;
 }
 
+// Pages with no asides (the contents list) use the whole content width.
+.wide-page {
+  justify-content: start;
+  grid-template-columns: minmax(0, $col * 20);
+}
+.prose.full { grid-column: 1 / -1; }
+
 // --- left sidebar (wide) ------------------------------------------------
 
 nav.wide {

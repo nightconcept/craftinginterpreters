@@ -22,6 +22,9 @@ const partLabel = isPart
 const title = isPart ? titledParts[partIndex].title : titleFor(slug);
 const number = isPart ? "" : chapterNumber(slug);
 const { prev, next } = adjacent(slug);
+
+// The contents page has no asides, so let it use the full content width.
+const isContents = slug === "contents";
 ---
 <html lang="en">
   <head>
@@ -55,7 +58,7 @@ const { prev, next } = adjacent(slug);
       <BookNav slug={slug} headings={headings} />
     </nav>
 
-    <div class="page">
+    <div class:list={["page", isContents && "wide-page"]}>
       <details class="floating">
         <summary>
           <span class="logo">Crafting Interpreters <span>in V</span></span>
@@ -64,7 +67,7 @@ const { prev, next } = adjacent(slug);
         <BookNav slug={slug} headings={headings} />
       </details>
 
-      <article class:list={["prose", isPart && "is-part"]}>
+      <article class:list={["prose", isPart && "is-part", isContents && "full"]}>
         {isPart
           ? <div class="part-number"><span>Part </span>{partLabel}</div>
           : number && <div class="chapter-number"><span>Chapter </span>{number}</div>}

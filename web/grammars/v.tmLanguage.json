@@ -7,6 +7,7 @@
     { "include": "#attribute" },
     { "include": "#string" },
     { "include": "#char" },
+    { "include": "#rune" },
     { "include": "#number" },
     { "include": "#declaration" },
     { "include": "#keyword" },
@@ -14,6 +15,7 @@
     { "include": "#type" },
     { "include": "#label" },
     { "include": "#call" },
+    { "include": "#usertype" },
     { "include": "#operator" }
   ],
   "repository": {
@@ -51,6 +53,7 @@
             { "include": "#constant" },
             { "include": "#number" },
             { "include": "#call" },
+            { "include": "#usertype" },
             { "name": "variable.other.v", "match": "[A-Za-z_][A-Za-z0-9_]*" }
           ]
         },
@@ -63,6 +66,10 @@
       "end": "\"",
       "patterns": [{ "name": "constant.character.escape.v", "match": "\\\\." }]
     },
+    "rune": {
+      "name": "string.quoted.other.rune.v",
+      "match": "`(\\\\.|[^`\\\\])`"
+    },
     "number": {
       "name": "constant.numeric.v",
       "match": "\\b(0x[0-9a-fA-F_]+|0b[01_]+|0o[0-7_]+|[0-9][0-9_]*(\\.[0-9_]+)?([eE][+-]?[0-9_]+)?)\\b"
@@ -70,16 +77,9 @@
     "declaration": {
       "patterns": [
         {
-          "match": "\\b(struct|enum|union|interface)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "match": "\\b(struct|enum|union|interface|type)\\s+([A-Za-z_][A-Za-z0-9_]*)",
           "captures": {
-            "1": { "name": "keyword.other.v" },
-            "2": { "name": "entity.name.type.v" }
-          }
-        },
-        {
-          "match": "\\b(type)\\s+([A-Za-z_][A-Za-z0-9_]*)",
-          "captures": {
-            "1": { "name": "keyword.other.v" },
+            "1": { "name": "keyword.declaration.v" },
             "2": { "name": "entity.name.type.v" }
           }
         },
@@ -89,19 +89,12 @@
             "1": { "name": "keyword.control.import.v" },
             "2": { "name": "entity.name.namespace.v" }
           }
-        },
-        {
-          "match": "\\b(fn)\\b(?:\\s*\\([^)]*\\))?\\s*([A-Za-z_][A-Za-z0-9_]*)?",
-          "captures": {
-            "1": { "name": "keyword.other.fn.v" },
-            "2": { "name": "entity.name.function.v" }
-          }
         }
       ]
     },
     "keyword": {
       "name": "keyword.control.v",
-      "match": "\\b(as|assert|atomic|break|const|continue|defer|else|for|go|goto|if|in|is|lock|match|mut|none|or|pub|return|rlock|select|shared|spawn|unsafe|__global)\\b"
+      "match": "\\b(as|assert|atomic|break|const|continue|defer|else|enum|fn|for|go|goto|if|import|in|interface|is|lock|match|module|mut|none|or|pub|return|rlock|select|shared|spawn|struct|type|union|unsafe|__global)\\b"
     },
     "constant": {
       "name": "constant.language.v",
@@ -113,15 +106,19 @@
     },
     "label": {
       "match": "^\\s*(mut|pub|mut pub|pub mut|__global)\\s*:",
-      "captures": { "1": { "name": "keyword.other.v" } }
+      "captures": { "1": { "name": "keyword.control.v" } }
     },
     "call": {
-      "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\()",
+      "match": "\\b([a-z_][A-Za-z0-9_]*)\\s*(?=\\()",
       "name": "entity.name.function.call.v"
+    },
+    "usertype": {
+      "name": "entity.name.type.v",
+      "match": "\\b[A-Z][A-Za-z0-9_]*\\b"
     },
     "operator": {
       "name": "keyword.operator.v",
-      "match": ":=|[-+*/%!<>=&|^]=?|\\?|:|\\.\\.\\.?|<-"
+      "match": ":=|[-+*/%!<>=&|^]=?|\\?|\\.\\.\\.?|<-"
     }
   }
 }
