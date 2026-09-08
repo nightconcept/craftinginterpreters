@@ -3,6 +3,7 @@ import remarkCodeTag from "./plugins/remark-code-tag.mjs";
 import remarkAside from "./plugins/remark-aside.mjs";
 import remarkImagePath from "./plugins/remark-image-path.mjs";
 import loxGrammar from "./grammars/lox.tmLanguage.json" with { type: "json" };
+import vGrammar from "./grammars/v.tmLanguage.json" with { type: "json" };
 
 // The repository is published at https://nightconcept.github.io/craftinginterpreters/
 // so the site lives under a base path. Change `base` to "/" for a custom domain.
@@ -18,11 +19,9 @@ export default defineConfig({
     remarkPlugins: [remarkCodeTag, remarkAside, [remarkImagePath, { base }]],
     syntaxHighlight: "shiki",
     shikiConfig: {
-      // V has no upstream Shiki grammar. `go` is the closest match for
-      // V syntax; replace with a bundled TextMate grammar when one exists.
-      langAlias: { v: "go" },
-      // Lox has no upstream grammar either; this one is bundled in `grammars/`.
-      langs: [loxGrammar],
+      // Neither V nor Lox has an upstream Shiki grammar; both are bundled
+      // minimal TextMate grammars in `grammars/`.
+      langs: [loxGrammar, vGrammar],
       themes: { light: "github-light", dark: "github-dark" },
     },
   },

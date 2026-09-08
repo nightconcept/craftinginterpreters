@@ -91,11 +91,11 @@ Two classes are additions of this fork:
 
 ## Syntax highlighting
 
-Shiki has no V grammar; `astro.config.mjs` aliases `v` to `go`. Lox has no
-grammar either, so `web/grammars/lox.tmLanguage.json` is a minimal one,
-loaded through `shikiConfig.langs`. Replace the `v` alias when a real V
-TextMate grammar exists. (`ebnf`, used in the grammar chapters, still falls
-back to plaintext.)
+Shiki has no grammar for V or Lox, so `web/grammars/{v,lox}.tmLanguage.json`
+are minimal bundled ones, loaded through `shikiConfig.langs`. The V sources
+are tab-indented (`v fmt`); `book.scss` sets `tab-size: 2` on `pre` so
+nested snippets do not scroll sideways. (`ebnf`, used in the grammar
+chapters, still falls back to plaintext.)
 
 ## GitHub Pages
 

@@ -324,6 +324,10 @@ pre {
   background: $warm-5;
   border-radius: 3px;
   overflow-x: auto;
+  // The V sources are tab-indented (v fmt). Render tabs at two columns so
+  // deeply nested snippets do not force horizontal scrolling.
+  tab-size: 2;
+  -moz-tab-size: 2;
 
   code {
     background: none;

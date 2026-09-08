@@ -1,0 +1,127 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "v",
+  "scopeName": "source.v",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#attribute" },
+    { "include": "#string" },
+    { "include": "#char" },
+    { "include": "#number" },
+    { "include": "#declaration" },
+    { "include": "#keyword" },
+    { "include": "#constant" },
+    { "include": "#type" },
+    { "include": "#label" },
+    { "include": "#call" },
+    { "include": "#operator" }
+  ],
+  "repository": {
+    "comment": {
+      "patterns": [
+        { "name": "comment.line.double-slash.v", "match": "//.*$" },
+        { "name": "comment.block.v", "begin": "/\\*", "end": "\\*/" }
+      ]
+    },
+    "attribute": {
+      "name": "meta.attribute.v",
+      "begin": "@?\\[",
+      "end": "\\]",
+      "beginCaptures": { "0": { "name": "punctuation.definition.attribute.v" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.attribute.v" } },
+      "patterns": [
+        { "name": "entity.other.attribute-name.v", "match": "[A-Za-z_][A-Za-z0-9_]*" },
+        { "include": "#string" }
+      ]
+    },
+    "string": {
+      "name": "string.quoted.single.v",
+      "begin": "'",
+      "end": "'",
+      "patterns": [
+        { "name": "constant.character.escape.v", "match": "\\\\." },
+        {
+          "name": "meta.interpolation.v",
+          "begin": "\\$\\{",
+          "end": "\\}",
+          "beginCaptures": { "0": { "name": "punctuation.section.interpolation.begin.v" } },
+          "endCaptures": { "0": { "name": "punctuation.section.interpolation.end.v" } },
+          "patterns": [
+            { "include": "#keyword" },
+            { "include": "#constant" },
+            { "include": "#number" },
+            { "include": "#call" },
+            { "name": "variable.other.v", "match": "[A-Za-z_][A-Za-z0-9_]*" }
+          ]
+        },
+        { "name": "meta.interpolation.v", "match": "\\$[A-Za-z_][A-Za-z0-9_.]*" }
+      ]
+    },
+    "char": {
+      "name": "string.quoted.double.v",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [{ "name": "constant.character.escape.v", "match": "\\\\." }]
+    },
+    "number": {
+      "name": "constant.numeric.v",
+      "match": "\\b(0x[0-9a-fA-F_]+|0b[01_]+|0o[0-7_]+|[0-9][0-9_]*(\\.[0-9_]+)?([eE][+-]?[0-9_]+)?)\\b"
+    },
+    "declaration": {
+      "patterns": [
+        {
+          "match": "\\b(struct|enum|union|interface)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "keyword.other.v" },
+            "2": { "name": "entity.name.type.v" }
+          }
+        },
+        {
+          "match": "\\b(type)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "keyword.other.v" },
+            "2": { "name": "entity.name.type.v" }
+          }
+        },
+        {
+          "match": "\\b(module|import)\\s+([A-Za-z_][A-Za-z0-9_.]*)",
+          "captures": {
+            "1": { "name": "keyword.control.import.v" },
+            "2": { "name": "entity.name.namespace.v" }
+          }
+        },
+        {
+          "match": "\\b(fn)\\b(?:\\s*\\([^)]*\\))?\\s*([A-Za-z_][A-Za-z0-9_]*)?",
+          "captures": {
+            "1": { "name": "keyword.other.fn.v" },
+            "2": { "name": "entity.name.function.v" }
+          }
+        }
+      ]
+    },
+    "keyword": {
+      "name": "keyword.control.v",
+      "match": "\\b(as|assert|atomic|break|const|continue|defer|else|for|go|goto|if|in|is|lock|match|mut|none|or|pub|return|rlock|select|shared|spawn|unsafe|__global)\\b"
+    },
+    "constant": {
+      "name": "constant.language.v",
+      "match": "\\b(true|false|nil|none|err)\\b"
+    },
+    "type": {
+      "name": "storage.type.v",
+      "match": "\\b(bool|string|rune|byte|voidptr|byteptr|charptr|isize|usize|size_t|any|i8|i16|i32|i64|int|u8|u16|u32|u64|f32|f64)\\b"
+    },
+    "label": {
+      "match": "^\\s*(mut|pub|mut pub|pub mut|__global)\\s*:",
+      "captures": { "1": { "name": "keyword.other.v" } }
+    },
+    "call": {
+      "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\()",
+      "name": "entity.name.function.call.v"
+    },
+    "operator": {
+      "name": "keyword.operator.v",
+      "match": ":=|[-+*/%!<>=&|^]=?|\\?|:|\\.\\.\\.?|<-"
+    }
+  }
+}
