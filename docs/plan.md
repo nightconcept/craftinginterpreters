@@ -38,7 +38,9 @@ overcounts by one hit per built page (40, currently).
 
 1,133 means nothing is done. 0 means the translation is complete.
 
-**Current: 1,100.** Chapter 4 accounts for all 33 resolved tags.
+**Current: 1,086.** Chapter 4 accounts for 33 resolved tags and chapter 5
+for 14. Chapter 5's remaining 4 are the `GenerateAst` machinery, which has no
+V counterpart by design; see [The AST](repo/ast.md).
 
 Reconcile that total against the per-chapter tag counts in the tables below
 every time it moves. A chapter whose placeholder count is lower than its tag
@@ -126,43 +128,28 @@ block-comment form for marking deletions.
 
 ## Phase 2.5 — Research and plan Part II from chapter 5
 
-**Status: not started. This is the next task.**
+**Status: done. See [The AST](repo/ast.md).**
 
 Chapter 4 was a mechanical translation with no design content. Chapter 5 is
-not. It sets the AST representation for the whole of Part II, and the plan
-below assumes a sum type and `match` without having tested that assumption
-against the chapters that consume it.
+not. It sets the AST representation for the whole of Part II, and this phase
+settled that shape against V 0.5.2 rather than assuming it.
 
-Do this as its own task, before writing chapter 5's code. Its output is a
-written design decision in `docs/repo/`, not an interpreter.
+All six questions are answered in the spoke. The decisions, in short:
 
-Questions it has to answer:
-
-1. **The AST shape.** A V sum type with `match` is the obvious candidate.
-   Confirm it against the four passes that consume the AST — the parser
-   (6), the interpreter (7), the resolver (11), and `AstPrinter` (5) — not
-   against chapter 5 alone. The risk table's mitigation is to prototype
-   chapters 5 and 7 together before committing; honour it.
-2. **Recursive sum types in V.** `Expr` contains `Expr`. Establish whether
-   that needs a reference or a heap allocation, and what that does to
-   `match` ergonomics and to the rendered snippets.
-3. **`GenerateAst`.** Nystrom generates the AST classes with a Java program.
-   V needs no generator for a sum type, which deletes a tool the book spends
-   a section on. Decide what `vlox/` contains in its place, and draft the
-   translator's note. This is the single largest structural divergence in
-   Part II, and Appendix II (23 tags) depends on the same decision.
-4. **Control flow as values.** Chapters 6, 7, and 10 use Java exceptions for
-   `ParseError`, runtime errors, and `return`. V has `!` results and no
-   exceptions. Decide the pattern once, here, rather than three times.
-5. **`Environment` and its parent link.** Chapter 8's `Environment` holds a
-   reference to its enclosing scope, and chapter 10's closures keep those
-   alive. Establish the ownership model before chapter 8, not during it.
-6. **Per-chapter test suites.** Phase 1's gap blocks ground rule 2. Decide
-   whether that lands before chapter 5 or alongside it.
-
-Deliverable: a spoke in `docs/repo/` recording each decision and its reason,
-linked from the spoke index in `CLAUDE.md`. Chapters 5 to 13 then follow it
-instead of relitigating it.
+1. **The AST shape.** A sum type for storage, a generic visitor interface
+   plus one `walk_expr[R]` for dispatch. Not the bare `match` this plan
+   assumed: V has generic interfaces, so the book's `Visitor<R>` survives
+   almost intact, and chapter 5 keeps fourteen of its eighteen tags.
+2. **Recursive sum types.** No reference and no allocation. V boxes struct
+   variants, so `struct BinaryExpr { left Expr ... }` compiles as written.
+3. **`GenerateAst`.** Deleted. The sum type is the type description. Four
+   chapter 5 tags have no V counterpart and keep the placeholder.
+4. **Control flow as values.** `ParseError`, `RuntimeError`, and `Return`
+   are error structs embedding `Error`, recovered by smart-cast in `or {}`.
+   Every `visit_*` method returns `!R` so one `walk` serves every pass.
+5. **`Environment`.** `@[heap]` with an `?&Environment` parent.
+6. **Per-chapter test suites.** Not a chapter 5 blocker — Nystrom has no
+   suite for chapter 5. The port lands as the first task of chapter 6.
 
 ## Phase 3 — Part II, the tree-walk interpreter
 
@@ -173,7 +160,7 @@ markers, translator's notes, and a green `just test-chapters`.
 | # | Chapter | Tags | The hard part in V |
 | ---: | --- | ---: | --- |
 | 4 | Scanning | 33 | **Done.** 33/33 tags marked, 6/6 `test/scanning` tests pass. The seed's `run()` free-function calls, uninitialized `on_error` field, and inverted argument test are fixed. Java's static `Lox.error()` became a back-reference field on `Scanner`, kept outside every marker so it stays out of the book. Token printing matches Java exactly — upper-case type names, `null` for an absent literal — so the shared corpus applies unchanged. One translator's note, on `Object` becoming `Literal = f64 \| string`. |
-| 5 | Representing Code | 18 | **The Visitor pattern.** No Java class hierarchy. Use a sum type and `match`. This decision shapes every later chapter. Blocked on Phase 2.5. |
+| 5 | Representing Code | 18 | **Done.** Sum type for storage, `ExprVisitor[R]` plus one `walk_expr[R]` for dispatch, per [The AST](repo/ast.md). 14 of 18 tags marked; the 4 `GenerateAst` tags have no V code by design. `AstPrinter` prints the chapter's tree exactly. Six translator's notes. No test suite exists for chapter 5 — Nystrom has none either. |
 | 6 | Parsing Expressions | 20 | `ParseError` as control flow becomes a V `!` result. |
 | 7 | Evaluating Expressions | 31 | `Object` literals become a sum type. Runtime errors become results. |
 | 8 | Statements and State | 40 | `Environment` holds a reference to its parent. Watch V's ownership rules. |
@@ -247,7 +234,7 @@ Do not do step 1 early to tidy up. The book is unverifiable without them.
 | ~~The snippet diff model is unimplemented~~ | ~~Wrong code renders silently~~ | **Closed.** Phase 2 landed and is verified against `java/` |
 | A tag resolves to another chapter's code | Confident, plausible, wrong code in an untranslated chapter | Reconcile the total placeholder count against the per-chapter tag tables on every change |
 | `test-chapters` cannot go green | Ground rule 2 is unenforceable | Port Nystrom's per-chapter test suites; see the Phase 1 gap |
-| The Visitor decision in chapter 5 | Rewrites chapters 6 to 13 | Phase 2.5 decides it in writing first; prototype chapters 5 and 7 together before committing |
+| ~~The Visitor decision in chapter 5~~ | ~~Rewrites chapters 6 to 13~~ | **Closed.** Decided in [The AST](repo/ast.md); each decision compiled and run under V 0.5.2 first |
 | Shiki has no V grammar | Highlighting is approximate | Aliased to a near grammar; replace when one exists |
 | V 0.5.2 is pinned | The language moves fast | Do not bump mid-translation |
 | Chapters 24 to 26 | The hardest block, late in the book | Schedule them as one unit |

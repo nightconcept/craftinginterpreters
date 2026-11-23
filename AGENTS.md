@@ -74,6 +74,7 @@ reached yet. Read [Snippets](docs/repo/snippets.md) for the full rules.
 - [Translation Plan](docs/plan.md) — chapter order, phases, and status
 - [Translation Rules](docs/repo/translation.md) — prose rules, translator's notes
 - [Snippets](docs/repo/snippets.md) — the `^code` and marker system
+- [The AST](docs/repo/ast.md) — Part II's tree shape, dispatch, errors, scope
 - [Architecture](docs/repo/architecture.md) — how the parts fit together
 - [Site](docs/repo/site.md) — Astro 7, asides, GitHub Pages
 - [Testing](docs/repo/testing.md) — the Lox corpus and chapter builds

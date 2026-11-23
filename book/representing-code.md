@@ -529,6 +529,15 @@ Expr is the base class that all expression classes inherit from. As you can see
 from `Binary`, the subclasses are nested inside of it. There's no technical need
 for this, but it lets us cram all of the classes into a single Java file.
 
+<div class="translators-note">
+<span class="translators-note-label">Translator's note</span>
+
+V has one flat namespace, so nesting `Binary` inside `Expr` isn't available.
+`vlox` instead names each variant with its base folded in: `Expr.Binary`
+becomes `BinaryExpr`, and every other node type follows the same pattern.
+
+</div>
+
 ### Disoriented objects
 
 You'll note that, much like the Token class, there aren't any methods here. It's
@@ -601,6 +610,17 @@ script isn't part of the interpreter itself. It's a tool *we*, the people
 hacking on the interpreter, run ourselves to generate the syntax tree classes.
 When it's done, we treat "Expr.java" like any other file in the implementation.
 We are merely automating how that file gets authored.
+
+<div class="translators-note">
+<span class="translators-note-label">Translator's note</span>
+
+V has no need for this generator. A sum type plus one struct per variant
+already *is* the type description that `defineAst()`'s string list encodes,
+so `vlox` gains no `tool` package and no writer that prints source code.
+The four `^code` tags below that describe the generator's internals have no
+V counterpart and keep rendering a placeholder for the rest of the chapter.
+
+</div>
 
 To generate the classes, it needs to have some description of each type and its
 fields.
@@ -876,6 +896,17 @@ We added one `accept()` method to each class, and we can use it for as many
 visitors as we want without ever having to touch the pastry classes again. It's
 a clever pattern.
 
+<div class="translators-note">
+<span class="translators-note-label">Translator's note</span>
+
+V's `match` already dispatches on a sum type's variant, so `vlox` doesn't
+need the double dispatch that makes `accept()` work in Java. The visitor
+interface and its `visit_*` methods survive intact, but the per-pastry (and
+later per-node) `accept()` overrides collapse into a single `walk_pastry`
+function containing one `match`.
+
+</div>
+
 ### Visitors for expressions
 
 OK, let's weave it into our expression classes. We'll also <span
@@ -907,7 +938,29 @@ Here, we iterate through all of the subclasses and declare a visit method for
 each one. When we define new expression types later, this will automatically
 include them.
 
+<div class="translators-note">
+<span class="translators-note-label">Translator's note</span>
+
+V has generic interfaces, so `Visitor<R>` carries over directly as
+`ExprVisitor[R]`. What doesn't carry over is overloading: Java gives every
+visit method the same name and distinguishes them by parameter type, but V
+has no overloading, so each visit method needs its own name:
+`visit_binary_expr`, `visit_grouping_expr`, and so on.
+
+</div>
+
 Inside the base class, we define the abstract `accept()` method.
+
+<div class="translators-note">
+<span class="translators-note-label">Translator's note</span>
+
+Java can declare `accept()` here and implement it per subclass. V cannot
+split a function that way, so `vlox` shows `walk_expr` in two pieces: the
+snippet below is the signature with its `match` still empty, and the next
+one fills in the arms. Neither half compiles alone; together they are the
+whole function.
+
+</div>
 
 ^code base-accept-method (2 before, 1 after)
 
@@ -1000,6 +1053,17 @@ If we did everything right, it prints:
 ```text
 (* (- 123) (group 45.67))
 ```
+
+<div class="translators-note">
+<span class="translators-note-label">Translator's note</span>
+
+A V program has exactly one entry point, and `vlox/src/main.v` already
+defines it, so this can't be a second `main()` the way it is in Java. `vlox`
+names it `ast_printer_main` instead, a plain function that nothing calls,
+just as Nystrom's `main()` goes uncalled once he comments it out at the end
+of the next chapter.
+
+</div>
 
 You can go ahead and delete this method. We won't need it. Also, as we add new
 syntax tree types, I won't bother showing the necessary visit methods for them
